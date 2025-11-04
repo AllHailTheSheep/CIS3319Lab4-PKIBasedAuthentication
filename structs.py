@@ -1,5 +1,6 @@
 from base64 import b64encode
 from dataclasses import dataclass, fields
+import utils
 
 @dataclass
 class ServerCARegistrationRequest:
@@ -7,6 +8,12 @@ class ServerCARegistrationRequest:
     ID_S: str
     TS1: int
 
+def deserialize_server_ca_registration_request(s: bytes) -> ServerCARegistrationRequest:
+    parts = s.split(utils.Constants.DELIM)
+    K_TMP1 = parts[0]
+    ID_S = parts[1].decode('utf-8')
+    TS1 = int.from_bytes(parts[2], "little")
+    return ServerCARegistrationRequest(K_TMP1=K_TMP1, ID_S=ID_S, TS1=TS1)
 
 # serializes an arbitrary dataclass
 def serialize_struct(dc) -> bytes:

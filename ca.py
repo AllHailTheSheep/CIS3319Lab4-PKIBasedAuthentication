@@ -1,14 +1,41 @@
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+
 from basic_socket import BasicSocket
-from utils import Constants
+import utils
+from structs import *
+
+SK_CA: bytes
+
+def decrypt_server_ca_registration_request(b: bytes) -> ServerCARegistrationRequest:
+    key = RSA.importKey(SK_CA)
+    cipher = PKCS1_OAEP.new(key)
+    decrypted = cipher.decrypt(b)
+    print("Decrypted (but still serialized) ServerCARegistrationRequest: " + decrypted.hex())
+    deserialized = deserialize_server_ca_registration_request(decrypted)
+    print(dc_to_string(deserialized))
+    return deserialized
 
 if __name__ == '__main__':
-    # TODO: CA will be run first, and therefore needs to generate CA's public key and secret key first, and put it in the constants class.
+    # CA will be run first, and therefore needs to generate CA's public key and secret key first. we write it to file
+    # for other files to read it (python lacks shared memory).
+    rsa_key = utils.gen_rsa_key()
+    with open("ca_public.pem", "wb") as f:
+        f.write(rsa_key.public_key().export_key())
+    SK_CA = rsa_key.export_key()
+    utils.Constants.PK_CA = rsa_key.public_key().export_key()
+    print("Generated RSA keypair. Private key is:\n\t" + SK_CA.hex() + "\nPublic key is:\n\t" + utils.Constants.PK_CA.hex() + "\n\n")
 
-    ca = BasicSocket('127.0.0.1', Constants.PORT_CA)
+    # start server
+    ca = BasicSocket('localhost', utils.Constants.PORT_CA)
     ca.listen()
-    print("CA server is listening on " + ca.addr + ":" + str(ca.port) + ". Waiting for registration request...\n")
-    # TODO: receive registration request from appliction, encrypted with PK_CA RSA key.
-    #   Will contain K_TMP1, ID_S, and TS1
+    print("CA server is listening on " + ca.addr + ":" + str(ca.port) + ". Waiting for registration request...\n\n")
+
+    # receive registration request from application server
+    recv_bytes = ca.recv()
+    print("Received encrypted/serialized ServerCARegistrationRequest: " + recv_bytes.hex())
+    server_ca_registration_request = decrypt_server_ca_registration_request(recv_bytes)
+
 
 
     # TODO: check ID_S with value in Constants. if correct, generate response (format as follows)

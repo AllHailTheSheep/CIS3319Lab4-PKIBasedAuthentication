@@ -1,8 +1,11 @@
 from basic_socket import BasicSocket
-from utils import Constants
+import utils
 
 if __name__ == "__main__":
-    client_sock = BasicSocket('localhost', Constants.PORT_CA)
+    with open("ca_public.pem", "rb") as f:
+        utils.Constants.PK_CA = f.read()
+
+    client_sock = BasicSocket('localhost', utils.Constants.PORT_CA)
     client_sock.connect()
 
     # TODO: send to server ID, TS3
