@@ -4,6 +4,7 @@ import socket
 from Crypto.Signature import pkcs1_15
 
 import utils
+from basic_socket import BasicSocket
 from structs import *
 
 from Crypto.PublicKey import RSA
@@ -49,8 +50,8 @@ if __name__ == '__main__':
         utils.Constants.PK_CA = f.read()
 
     # start server
-    ca_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ca_sock.connect(('localhost', utils.Constants.PORT_CA))
+    ca_sock = BasicSocket("localhost", utils.Constants.PORT_CA)
+    ca_sock.connect()
     print("Server started and connected to CA. Generating registration request...")
 
     # send request to CA
@@ -64,9 +65,16 @@ if __name__ == '__main__':
     recv = ca_sock.recv(4096)
     print("Received encrypted/serialized ServerCARegistrationResponse: " + recv.hex())
     server_ca_registration_response = decrypt_server_ca_registration_response(recv, ca_request.K_TMP1)
+    print("Finished with server CA registration handshake. Waiting for client to connect...\n\n")
 
-    # TODO: receive request from client
-
+    # receive request from client
+    client_sock = BasicSocket("localhost", utils.Constants.PORT_CLIENT)
+    client_sock.listen()
+    print("Client connected to server. Waiting for client request...")
+    msg = client_sock.recv(4096)
+    print("Received ClientServerReqeust1: " + msg.hex())
+    client_server_req1 = pickle.loads(msg)
+    print(dc_to_string(client_server_req1))
 
     # TODO: send response to client with PK_S, CERT_S, and TS4
 
