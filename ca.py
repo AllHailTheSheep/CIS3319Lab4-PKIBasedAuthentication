@@ -1,8 +1,11 @@
+import pickle
+
 from Crypto.Cipher import PKCS1_OAEP, DES
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
+
 
 from basic_socket import BasicSocket
 import utils
@@ -13,7 +16,7 @@ SK_CA: bytes
 def encrypt_and_sign_server_ca_registration_response(dc: ServerCARegistrationResponse, tmp_key: bytes) -> bytes:
     cert = dc.CERT_S
     dc.CERT_S = None
-    serialized_cert = serialize_struct(cert)
+    serialized_cert = pickle.dumps(cert)
     print("Serialized CERT_S: " + serialized_cert.hex())
     cert_hash = SHA256.new(serialized_cert)
     print("CERT_S SHA256 hash: " + cert_hash.hexdigest())
@@ -23,7 +26,7 @@ def encrypt_and_sign_server_ca_registration_response(dc: ServerCARegistrationRes
     dc.CERT_S_SERIALIZED = serialized_cert
     dc.CERT_S_SIGNATURE = cert_signature
     print(dc_to_string(dc))
-    serialized_res = serialize_struct(dc)
+    serialized_res = pickle.dumps(dc)
     print("Serialized ServerCARegistrationResponse: " + serialized_res.hex())
     cipher = DES.new(tmp_key, DES.MODE_ECB)
     ct = cipher.encrypt(pad(serialized_res, DES.block_size))
@@ -35,7 +38,7 @@ def decrypt_server_ca_registration_request(b: bytes) -> ServerCARegistrationRequ
     cipher = PKCS1_OAEP.new(key)
     decrypted = cipher.decrypt(b)
     print("Decrypted (but still serialized) ServerCARegistrationRequest: " + decrypted.hex())
-    deserialized = deserialize_server_ca_registration_request(decrypted)
+    deserialized = pickle.loads(decrypted)
     print(dc_to_string(deserialized))
     return deserialized
 
