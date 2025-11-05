@@ -1,9 +1,9 @@
+import pickle
 import socket
 
 from Crypto.Signature import pkcs1_15
 
 import utils
-from basic_socket import BasicSocket
 from structs import *
 
 from Crypto.PublicKey import RSA
@@ -16,7 +16,7 @@ req = "memo"
 data = "take cis3319 class this morning"
 
 def encrypt_server_ca_registration_request(dc: ServerCARegistrationRequest) -> bytes:
-    serialized = serialize_struct(dc)
+    serialized = pickle.dumps(dc)
     print("Serialized ServerCARegistrationRequest: " + serialized.hex())
     key = RSA.import_key(utils.Constants.PK_CA)
     cipher = PKCS1_OAEP.new(key)
@@ -28,7 +28,7 @@ def decrypt_server_ca_registration_response(b: bytes, tmp_key: bytes) -> ServerC
     cipher = DES.new(tmp_key, DES.MODE_ECB)
     decrypted = unpad(cipher.decrypt(b), DES.block_size)
     print("Decrypted (but still serialized) ServerCARegistrationResponse: " + decrypted.hex())
-    deserialized_res = deserialize_server_ca_registration_response(decrypted)
+    deserialized_res = pickle.loads(decrypted)
     print(dc_to_string(deserialized_res))
     # now ensure that the hash created from CERT_S_SERIALIZED can be verified
     pk = RSA.import_key(utils.Constants.PK_CA)
@@ -38,7 +38,7 @@ def decrypt_server_ca_registration_response(b: bytes, tmp_key: bytes) -> ServerC
         print("CERT_S_SIGNATURE matches!")
     except (ValueError, TypeError):
         raise Exception("CERT_S_SIGNATURE is invalid!")
-    deserialized_cert = deserialize_server_cert(deserialized_res.CERT_S_SERIALIZED)
+    deserialized_cert = pickle.loads(deserialized_res.CERT_S_SERIALIZED)
     deserialized_res.CERT_S = deserialized_cert
     print(dc_to_string(deserialized_res))
     return deserialized_res
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # TODO: receive response (including cert) from CA and decrypt. verify cert authenticity
     recv = ca_sock.recv(4096)
-    print("Received encrypted/serialized ServerCARegistrationRequest: " + recv.hex())
+    print("Received encrypted/serialized ServerCARegistrationResponse: " + recv.hex())
     server_ca_registration_response = decrypt_server_ca_registration_response(recv, ca_request.K_TMP1)
 
     # TODO: receive request from client
