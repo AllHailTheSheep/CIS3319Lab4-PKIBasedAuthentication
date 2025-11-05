@@ -76,7 +76,18 @@ if __name__ == '__main__':
     client_server_req1 = pickle.loads(msg)
     print(dc_to_string(client_server_req1))
 
-    # TODO: send response to client with PK_S, CERT_S, and TS4
+    # send response to client with PK_S, CERT_S, and TS4
+    res1_dc = ClientServerResponse1(
+        PK_S=server_ca_registration_response.PK_S,
+        CERT_S=None,
+        CERT_S_SERIALIZED=server_ca_registration_response.CERT_S_SERIALIZED,
+        CERT_S_SIGNATURE=server_ca_registration_response.CERT_S_SIGNATURE,
+        TS4=utils.get_time_stamp())
+    print(dc_to_string(res1_dc))
+    res1_serialized = pickle.dumps(res1_dc)
+    print("Serialized ClientServerResponse1: " + res1_serialized.hex())
+    client_sock.send(res1_serialized)
+    print("Sent ClientServerResponse1. Waiting for response...\n\n")
 
     # TODO: receive from client (encrypted with RSA PK_S) K_TMP2, ID_C, IP_C, PORT_C, and TS5
 

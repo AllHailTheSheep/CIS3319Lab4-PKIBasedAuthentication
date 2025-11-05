@@ -1,8 +1,28 @@
 import pickle
 
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+
 from basic_socket import BasicSocket
 import utils
 from structs import *
+
+def verify_res1(b: bytes):
+    client_server_res1 = pickle.loads(b)
+    print(dc_to_string(client_server_res1))
+    pk = RSA.import_key(utils.Constants.PK_CA)
+    h = SHA256.new(client_server_res1.CERT_S_SERIALIZED)
+    try:
+        pkcs1_15.new(pk).verify(h, client_server_res1.CERT_S_SIGNATURE)
+        print("CERT_S_SIGNATURE matches!")
+    except (ValueError, TypeError):
+        raise Exception("CERT_S_SIGNATURE is invalid!")
+    deserialized_cert = pickle.loads(client_server_res1.CERT_S_SERIALIZED)
+    client_server_res1.CERT_S = deserialized_cert
+    print(dc_to_string(client_server_res1))
+    return client_server_res1
+
 
 if __name__ == "__main__":
     with open("ca_public.pem", "rb") as f:
@@ -20,8 +40,11 @@ if __name__ == "__main__":
     client_sock.send(serialized)
     print("Sent ClientServerRequest1! Waiting on response...\n\n")
 
-    # TODO: receive PK_S, CERT_S, TS4
-
+    # receive PK_S, CERT_S, TS4
+    recv = client_sock.recv()
+    print("Received ClientServerResponse1: " + recv.hex())
+    res1_dc = verify_res1(recv)
+    print("Generating ClientServerRequest2...\n\n")
 
     # TODO: send K_TMP2 to server along with other info (format in server.py) encrypted with RSA PK_S
 
