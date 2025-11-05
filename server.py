@@ -60,12 +60,13 @@ if __name__ == '__main__':
     ca_sock.send(ciphertext)
     print("Sent ServerCARegistrationRequest! Waiting for response...\n\n")
 
-    # TODO: receive response (including cert) from CA and decrypt. verify cert authenticity
+    # receive response (including cert) from CA and decrypt. verify cert authenticity
     recv = ca_sock.recv(4096)
     print("Received encrypted/serialized ServerCARegistrationResponse: " + recv.hex())
     server_ca_registration_response = decrypt_server_ca_registration_response(recv, ca_request.K_TMP1)
 
     # TODO: receive request from client
+
 
     # TODO: send response to client with PK_S, CERT_S, and TS4
 

@@ -22,6 +22,34 @@ class ServerCARegistrationResponse:
     ID_S: str
     TS2: int
 
+@dataclass
+class ClientServerRequest1:
+    ID_S: str
+    TS3: int
+
+@dataclass
+class ClientServerResponse1:
+    PK_S: bytes
+    CERT_S: ServerCert
+    CERT_S_SERIALIZED: bytes
+    CERT_S_SIGNATURE: bytes
+    TS4: int
+
+@dataclass
+class ClientServerRequest2:
+    K_TMP2: bytes
+    ID_C: str
+    IP_C: str
+    PORT_C: int
+    TS5: int
+
+@dataclass
+class ClientServerResponse2:
+    K_SESS: bytes
+    LIFETIME: int
+    ID_C: str
+    TS6: int
+
 # formats an arbitrary dataclass to string and returns it
 def dc_to_string(dc) -> str:
     res = type(dc).__name__ + ":"
