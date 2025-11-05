@@ -2,3 +2,4 @@ CIS3319Lab4 - PKI-Based Authentication.iml
 .idea
 .venv
 *.pem
+*.zip

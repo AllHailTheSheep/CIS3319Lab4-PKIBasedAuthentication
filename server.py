@@ -1,10 +1,15 @@
 import socket
+
+from Crypto.Signature import pkcs1_15
+
 import utils
 from basic_socket import BasicSocket
-from structs import ServerCARegistrationRequest, serialize_struct, dc_to_string
+from structs import *
 
 from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Cipher import PKCS1_OAEP, DES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Hash import SHA256
 
 
 req = "memo"
@@ -19,6 +24,24 @@ def encrypt_server_ca_registration_request(dc: ServerCARegistrationRequest) -> b
     print("Encrypted ServerCARegistrationRequest: " + ct.hex())
     return ct
 
+def decrypt_server_ca_registration_response(b: bytes, tmp_key: bytes) -> ServerCARegistrationResponse:
+    cipher = DES.new(tmp_key, DES.MODE_ECB)
+    decrypted = unpad(cipher.decrypt(b), DES.block_size)
+    print("Decrypted (but still serialized) ServerCARegistrationResponse: " + decrypted.hex())
+    deserialized_res = deserialize_server_ca_registration_response(decrypted)
+    print(dc_to_string(deserialized_res))
+    # now ensure that the hash created from CERT_S_SERIALIZED can be verified
+    pk = RSA.import_key(utils.Constants.PK_CA)
+    h = SHA256.new(deserialized_res.CERT_S_SERIALIZED)
+    try:
+        pkcs1_15.new(pk).verify(h, deserialized_res.CERT_S_SIGNATURE)
+        print("CERT_S_SIGNATURE matches!")
+    except (ValueError, TypeError):
+        raise Exception("CERT_S_SIGNATURE is invalid!")
+    deserialized_cert = deserialize_server_cert(deserialized_res.CERT_S_SERIALIZED)
+    deserialized_res.CERT_S = deserialized_cert
+    print(dc_to_string(deserialized_res))
+    return deserialized_res
 
 if __name__ == '__main__':
     # read key from file
@@ -35,10 +58,12 @@ if __name__ == '__main__':
     print(dc_to_string(ca_request))
     ciphertext = encrypt_server_ca_registration_request(ca_request)
     ca_sock.send(ciphertext)
-    print("Sent ServerCARegistrationRequest! Waiting for response...")
-
+    print("Sent ServerCARegistrationRequest! Waiting for response...\n\n")
 
     # TODO: receive response (including cert) from CA and decrypt. verify cert authenticity
+    recv = ca_sock.recv(4096)
+    print("Received encrypted/serialized ServerCARegistrationRequest: " + recv.hex())
+    server_ca_registration_response = decrypt_server_ca_registration_response(recv, ca_request.K_TMP1)
 
     # TODO: receive request from client
 
