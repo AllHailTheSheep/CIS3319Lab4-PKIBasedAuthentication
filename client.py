@@ -103,7 +103,6 @@ if __name__ == "__main__":
     client_sock.send(encrypted_service_reqeust)
     print("Sent ServiceRequest! Waiting on response...\n\n")
 
-
     # receive from server ServiceRequest
     recv = client_sock.recv()
     print("Received encrypted ServiceResponse: " + recv.hex())
