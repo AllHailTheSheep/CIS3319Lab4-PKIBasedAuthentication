@@ -50,6 +50,16 @@ class ClientServerResponse2:
     ID_C: str
     TS6: int
 
+@dataclass
+class ServiceRequest:
+    REQ: str
+    TS7: int
+
+@dataclass
+class ServiceResponse:
+    DATA: str
+    TS8: int
+
 # formats an arbitrary dataclass to string and returns it
 def dc_to_string(dc) -> str:
     res = type(dc).__name__ + ":"

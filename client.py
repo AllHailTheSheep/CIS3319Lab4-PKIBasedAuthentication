@@ -4,7 +4,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from Crypto.Cipher import PKCS1_OAEP, DES
-from Crypto.Util.Padding import unpad
+from Crypto.Util.Padding import unpad, pad
 
 from basic_socket import BasicSocket
 import utils
@@ -39,7 +39,21 @@ def decrypt_client_server_response2(b: bytes, tmp_key: bytes) -> ClientServerRes
     print(dc_to_string(dc))
     return dc
 
+def encrypt_service_request(dc: ServiceRequest, key: bytes) -> bytes:
+    serialized_dc = pickle.dumps(dc)
+    print("Serialized ServiceRequest: " + serialized_dc.hex())
+    encrypted = DES.new(key, DES.MODE_ECB).encrypt(pad(serialized_dc, DES.block_size))
+    print("Encrypted ServiceRequest: " + encrypted.hex())
+    return encrypted
 
+def decrypt_service_response(b: bytes, key: bytes) -> ServiceResponse:
+    decrypted = unpad(DES.new(key, DES.MODE_ECB).decrypt(b), DES.block_size)
+    print("Decrypted ServiceResponse2: " + decrypted.hex())
+    dc = pickle.loads(decrypted)
+    print(dc_to_string(dc))
+    return dc
+
+req = "memo"
 
 if __name__ == "__main__":
     with open("ca_public.pem", "rb") as f:
@@ -76,11 +90,22 @@ if __name__ == "__main__":
     client_sock.send(cipher_text)
     print("Sent ClientRequest2! Waiting on response...\n\n")
 
-    # TODO: receive from server (DES K_TMP2) message with K_SESS (see server.py for format)
+    # receive ClientSeverResponse2
     recv = client_sock.recv()
     print("Received ClientServerResponse2: " + recv.hex())
     res2_dc = decrypt_client_server_response2(recv, req2.K_TMP2)
 
-    # TODO: send to client (DES K_SESS) req, TS7
+    # send to server ServiceRequest
+    print("Generating ServiceRequest...")
+    service_request = ServiceRequest(REQ=req, TS7=utils.get_time_stamp())
+    print(dc_to_string(service_request))
+    encrypted_service_reqeust = encrypt_service_request(service_request, res2_dc.K_SESS)
+    client_sock.send(encrypted_service_reqeust)
+    print("Sent ServiceRequest! Waiting on response...\n\n")
 
-    # TODO: receive from server (DES K_SESS) data, TS8
+
+    # receive from server ServiceRequest
+    recv = client_sock.recv()
+    print("Received encrypted ServiceResponse: " + recv.hex())
+    service_response = decrypt_service_response(recv, res2_dc.K_SESS)
+    print("Finished PKI-based authentication! Got data of:\n\t" + service_response.DATA)

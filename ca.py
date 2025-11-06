@@ -77,4 +77,4 @@ if __name__ == '__main__':
     print(dc_to_string(server_ca_registration_response))
     msg = encrypt_and_sign_server_ca_registration_response(server_ca_registration_response, server_ca_registration_request.K_TMP1)
     ca.send(msg)
-    print("ServerCARegistrationResponse sent!\n\n")
+    print("ServerCARegistrationResponse sent! Finished CA responsibilities.")

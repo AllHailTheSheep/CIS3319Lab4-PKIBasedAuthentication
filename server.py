@@ -60,6 +60,19 @@ def encrypt_client_server_response2(dc: ClientServerResponse2, tmp_key: bytes) -
     print("Encrypted ClientServerResponse2: " + encrypted.hex())
     return encrypted
 
+def decrypt_service_request(b: bytes, key: bytes) -> ServiceRequest:
+    decrypted = unpad(DES.new(key, DES.MODE_ECB).decrypt(b), DES.block_size)
+    print("Decrypted (but still serialized) ServiceRequest: " + decrypted.hex())
+    dc = pickle.loads(decrypted)
+    print(dc_to_string(dc))
+    return dc
+
+def encrypt_service_response(dc: ServiceResponse, key: bytes) -> bytes:
+    serialized = pickle.dumps(dc)
+    print("Serialized ServiceResponse: " + serialized.hex())
+    encrypted = DES.new(key, DES.MODE_ECB).encrypt(pad(serialized, DES.block_size))
+    print("Encrypted ServiceResponse: " + encrypted.hex())
+    return encrypted
 
 if __name__ == '__main__':
     # read key from file
@@ -119,6 +132,16 @@ if __name__ == '__main__':
     client_sock.send(res2_encrypted)
     print("Sent ClientServerResponse2. Client Registration complete! Waiting for service request...\n\n")
 
-    # TODO: receive from client (encrypted with DES K_SESS) req, TS7
+    # receive from client ServiceRequest
+    recv = client_sock.recv(4096)
+    print("Received encrypted ServiceRequest: " + recv.hex())
+    service_request = decrypt_service_request(recv, res2_dc.K_SESS)
 
-    # TODO: send to client (encrypted with DES K_SESS) data. TS8
+
+    # TODO: send to client ServiceResponse
+    print("Generating ServiceResponse...")
+    service_response = ServiceResponse(DATA=data, TS8=utils.get_time_stamp()) # in prod wed probably use a map to fetch data from reqs (and maybe not use ECB but ya know)
+    print(dc_to_string(service_response))
+    encrypted_service_response = encrypt_service_response(service_response, res2_dc.K_SESS)
+    client_sock.send(encrypted_service_response)
+    print("Sent ServiceResponse. Finished!")
