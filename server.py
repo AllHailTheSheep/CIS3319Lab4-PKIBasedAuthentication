@@ -85,7 +85,7 @@ if __name__ == '__main__':
     print("Server started and connected to CA. Generating registration request...")
 
     # send request to CA
-    ca_request = ServerCARegistrationRequest(K_TMP1=utils.gen_key(8), ID_S=utils.Constants.ID_S,TS1=utils.get_time_stamp())
+    ca_request = ServerCARegistrationRequest(K_TMP1=utils.gen_key(8), ID_S=utils.Constants.ID_S, TS1=utils.get_time_stamp())
     print(dc_to_string(ca_request))
     ciphertext = encrypt_server_ca_registration_request(ca_request)
     ca_sock.send(ciphertext)
