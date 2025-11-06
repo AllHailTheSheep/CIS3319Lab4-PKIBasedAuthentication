@@ -107,4 +107,6 @@ if __name__ == "__main__":
     recv = client_sock.recv()
     print("Received encrypted ServiceResponse: " + recv.hex())
     service_response = decrypt_service_response(recv, res2_dc.K_SESS)
+    if (utils.get_time_stamp() - service_response.TS8) > utils.Constants.LIFETIME_SESS:
+        raise Exception("K_SESS is expired!")
     print("Finished PKI-based authentication! Got data of:\n\t" + service_response.DATA)

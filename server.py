@@ -136,9 +136,11 @@ if __name__ == '__main__':
     recv = client_sock.recv(4096)
     print("Received encrypted ServiceRequest: " + recv.hex())
     service_request = decrypt_service_request(recv, res2_dc.K_SESS)
+    # ensure TS is good
+    if (utils.get_time_stamp() - service_request.TS7) > utils.Constants.LIFETIME_SESS:
+        raise Exception("K_SESS is expired!")
 
-
-    # TODO: send to client ServiceResponse
+    # send to client ServiceResponse
     print("Generating ServiceResponse...")
     service_response = ServiceResponse(DATA=data, TS8=utils.get_time_stamp()) # in prod wed probably use a map to fetch data from reqs (and maybe not use ECB but ya know)
     print(dc_to_string(service_response))
