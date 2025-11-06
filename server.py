@@ -44,6 +44,23 @@ def decrypt_server_ca_registration_response(b: bytes, tmp_key: bytes) -> ServerC
     print(dc_to_string(deserialized_res))
     return deserialized_res
 
+def decrypt_client_server_reqeust2(b: bytes, rsa_key: bytes) -> ClientServerRequest2:
+    serialized = PKCS1_OAEP.new(RSA.import_key(rsa_key)).decrypt(b)
+    print("Serialized ClientServerRequest2: " + serialized.hex())
+    dc = pickle.loads(serialized)
+    print(dc_to_string(dc))
+    return dc
+
+
+def encrypt_client_server_response2(dc: ClientServerResponse2, tmp_key: bytes) -> bytes:
+    serialized = pickle.dumps(dc)
+    print("Serialized ClientServerResponse2: " + serialized.hex())
+    cipher = DES.new(tmp_key, DES.MODE_ECB)
+    encrypted = cipher.encrypt(pad(serialized, DES.block_size))
+    print("Encrypted ClientServerResponse2: " + encrypted.hex())
+    return encrypted
+
+
 if __name__ == '__main__':
     # read key from file
     with open("ca_public.pem", "rb") as f:
@@ -89,9 +106,18 @@ if __name__ == '__main__':
     client_sock.send(res1_serialized)
     print("Sent ClientServerResponse1. Waiting for response...\n\n")
 
-    # TODO: receive from client (encrypted with RSA PK_S) K_TMP2, ID_C, IP_C, PORT_C, and TS5
+    # receive and decrypt ClientServerRequest2
+    recv = client_sock.recv(4096)
+    print("Received ClientServerRequest2: " + recv.hex())
+    client_server_req2 = decrypt_client_server_reqeust2(recv, server_ca_registration_response.SK_S)
 
-    # TODO: send to client (encrypted with DES K_TMP2) K_SESS, LIFETIME_SESS, ID_C, TS6
+    # send ClientServerResponse2 back
+    print("Generating ClientServerResponse2...")
+    res2_dc = ClientServerResponse2(K_SESS=utils.gen_key(8), LIFETIME=utils.Constants.LIFETIME_SESS, ID_C=utils.Constants.ID_C, TS6=utils.get_time_stamp())
+    print(dc_to_string(res2_dc))
+    res2_encrypted = encrypt_client_server_response2(res2_dc, client_server_req2.K_TMP2)
+    client_sock.send(res2_encrypted)
+    print("Sent ClientServerResponse2. Client Registration complete! Waiting for service request...\n\n")
 
     # TODO: receive from client (encrypted with DES K_SESS) req, TS7
 

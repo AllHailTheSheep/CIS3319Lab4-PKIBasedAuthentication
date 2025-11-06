@@ -18,6 +18,8 @@ class Constants:
 
     DELIM: bytes = b'||'
 
+    LIFETIME_SESS = 60
+
 
 def get_time_stamp():
     return int(time.time())
